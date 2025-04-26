@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.9.1",
+    "canvas-confetti": "^1.9.3",
     "framer-motion": "^12.9.2",
     "next": "15.3.1",
     "next-auth": "^4.24.11",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
