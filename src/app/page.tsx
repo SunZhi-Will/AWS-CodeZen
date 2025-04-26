@@ -27,7 +27,7 @@ export default function Home() {
             真人 AI 偶像平台
           </h1>
           <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-            為 ARMY 打造的專屬平台，傳遞防彈少年團的音樂與故事
+            結合真人與 AI 技術的創新偶像互動平台，打造沉浸式粉絲體驗
           </p>
           <div className="mt-8 flex justify-center gap-4">
 
