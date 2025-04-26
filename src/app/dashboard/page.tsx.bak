@@ -1,0 +1,313 @@
+import { Suspense } from 'react';
+import Link from 'next/link';
+import Navigation from '../components/Navigation';
+import Image from 'next/image';
+import InteractionTrend from '../components/InteractionTrend';
+
+// 定義類型
+interface StatsCardProps {
+    title: string;
+    value: string;
+    change: string;
+    isPositive?: boolean;
+}
+
+// 儀表板統計卡片組件
+function StatsCard({ title, value, change, isPositive = true }: StatsCardProps) {
+    return (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</h3>
+            <div className="flex items-baseline mt-1">
+                <span className="text-2xl font-semibold">{value}</span>
+                <span className={`ml-2 text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                    {isPositive ? '↑' : '↓'} {change}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+// 最近活動組件
+function RecentActivities() {
+    const activities = [
+        { id: 1, user: '用戶A', action: '發送了禮物', time: '10分鐘前' },
+        { id: 2, user: '用戶B', action: '加入了直播', time: '15分鐘前' },
+        { id: 3, user: '用戶C', action: '訂閱了頻道', time: '30分鐘前' },
+        { id: 4, user: '用戶D', action: '發表了評論', time: '1小時前' },
+        { id: 5, user: '用戶E', action: '購買了商品', time: '2小時前' },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium mb-4">最近活動</h2>
+            <div className="space-y-4">
+                {activities.map((activity) => (
+                    <div key={activity.id} className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                            {activity.user.charAt(0)}
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium">{activity.user} {activity.action}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{activity.time}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// 直播數據圖表佔位符
+function LiveStreamChart() {
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium mb-4">直播數據統計</h2>
+            <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+                <p className="text-gray-500 dark:text-gray-400">這裡將顯示直播數據圖表</p>
+            </div>
+        </div>
+    );
+}
+
+// 粉絲互動數據組件
+function FanEngagementStats() {
+    // 互動趨勢數據
+    const trendData = [
+        { day: '週一', engagement: 62, satisfaction: 86 },
+        { day: '週二', engagement: 65, satisfaction: 89 },
+        { day: '週三', engagement: 70, satisfaction: 90 },
+        { day: '週四', engagement: 75, satisfaction: 91 },
+        { day: '週五', engagement: 72, satisfaction: 92 },
+        { day: '週六', engagement: 76, satisfaction: 94 },
+        { day: '週日', engagement: 73, satisfaction: 92 },
+    ];
+
+    // 計算最大值以確定圖表高度比例
+    const maxEngagement = Math.max(...trendData.map(item => item.engagement));
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium mb-4">粉絲互動數據</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <h3 className="text-sm text-gray-600 dark:text-gray-300">平均互動率</h3>
+                    <div className="flex items-baseline mt-2">
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">27.3%</span>
+                        <span className="ml-2 text-sm text-green-500">↑ 4.5%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">相較上月</p>
+                </div>
+
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                    <h3 className="text-sm text-gray-600 dark:text-gray-300">回覆滿意度</h3>
+                    <div className="flex items-baseline mt-2">
+                        <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">92%</span>
+                        <span className="ml-2 text-sm text-green-500">↑ 3%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">相較上月</p>
+                </div>
+
+                <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                    <h3 className="text-sm text-gray-600 dark:text-gray-300">粉絲留存率</h3>
+                    <div className="flex items-baseline mt-2">
+                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">85.7%</span>
+                        <span className="ml-2 text-sm text-green-500">↑ 2.3%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">相較上月</p>
+                </div>
+            </div>
+
+            <div className="mt-6">
+                <InteractionTrend />
+            </div>
+        </div>
+    );
+}
+
+// 品牌訊息點閱分析組件
+function BrandMessageAnalytics() {
+    const messageStats = [
+        { category: '產品更新', impressions: '4,572', clickRate: '18.3%', conversion: '5.2%' },
+        { category: '限時優惠', impressions: '3,841', clickRate: '24.7%', conversion: '8.9%' },
+        { category: '粉絲活動', impressions: '2,935', clickRate: '31.2%', conversion: '12.4%' },
+        { category: '新聞公告', impressions: '2,123', clickRate: '14.5%', conversion: '3.8%' },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium mb-4">品牌訊息點閱分析</h2>
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">訊息類別</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">曝光次數</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">點閱率</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">轉換率</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {messageStats.map((stat, index) => (
+                            <tr key={index}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{stat.category}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{stat.impressions}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{stat.clickRate}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{stat.conversion}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+                <button className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                    查看完整報告 →
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// 偶像空間頁面
+export default function IdolSpace() {
+    // 模擬單一AI偶像數據
+    const idol = {
+        name: '星光夢想家',
+        category: '歌手',
+        fans: 856,
+        active: true,
+        progress: 75,
+        description: '專注於音樂創作與表演的AI虛擬偶像，擅長流行樂和抒情歌曲，聲音溫暖動人。',
+        skills: ['歌唱', '作曲', '演奏', '互動', '主持'],
+        trainSteps: [
+            { name: '音樂素材', progress: 100 },
+            { name: '歌曲風格', progress: 90 },
+            { name: '語音訓練', progress: 85 },
+            { name: '表演動作', progress: 70 },
+            { name: '互動能力', progress: 60 }
+        ]
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+            <Navigation title="真人 AI 偶像平台" />
+
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* 頁面標題 */}
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">偶像空間</h1>
+                    <div className="flex items-center">
+                        
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                            編輯偶像
+                        </button>
+                    </div>
+                </div>
+
+                {/* 概覽數據 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">訓練進度</h3>
+                            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{idol.progress}%</span>
+                        </div>
+                        <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${idol.progress}%` }}></div>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">預計完成時間：2024/01/15</p>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">總粉絲數</h3>
+                            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{idol.fans}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-green-500 dark:text-green-400 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+                            </svg>
+                            較上月增加 12.4%
+                        </p>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">互動次數</h3>
+                            <span className="text-2xl font-bold text-green-600 dark:text-green-400">8,724</span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">本月用戶互動總次數</p>
+                    </div>
+                </div>
+
+                {/* AI偶像詳情 */}
+                <div className="mb-10">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex flex-col md:flex-row">
+                                <div className="md:w-1/4 flex justify-center">
+                                    <div className="w-40 h-40 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-5xl font-bold">
+                                        {idol.name.charAt(0)}
+                                    </div>
+                                </div>
+
+                                <div className="md:w-3/4 mt-6 md:mt-0 md:pl-6">
+                                    <div className="flex items-center">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{idol.name}</h2>
+                                        <span className={`ml-3 px-3 py-1 text-xs rounded-full ${idol.active ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                                            {idol.active ? '在線' : '離線'}
+                                        </span>
+                                        <span className="ml-3 px-3 py-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full">
+                                            {idol.category}
+                                        </span>
+                                    </div>
+
+                                    <p className="mt-4 text-gray-600 dark:text-gray-300">{idol.description}</p>
+
+                                    <div className="mt-6">
+                                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">技能</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {idol.skills.map((skill, index) => (
+                                                <span key={index} className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded text-sm">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">訓練進度</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {idol.trainSteps.map((step, index) => (
+                                                <div key={index}>
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="text-gray-600 dark:text-gray-300">{step.name}</span>
+                                                        <span className="text-gray-600 dark:text-gray-300">{step.progress}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                                        <div
+                                                            className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full"
+                                                            style={{ width: `${step.progress}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 粉絲互動數據與品牌訊息分析 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                    <FanEngagementStats />
+                    <BrandMessageAnalytics />
+                </div>
+            </main>
+        </div>
+    );
+} 

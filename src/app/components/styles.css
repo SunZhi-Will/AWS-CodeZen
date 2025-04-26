@@ -1,0 +1,75 @@
+/* 生日通知相關樣式 */
+.birthday-text-gradient {
+    background: linear-gradient(to right, #FF69B4, #FFB6C1, #FF69B4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+    animation: shine 3s linear infinite;
+}
+
+@keyframes shine {
+    0% {
+        background-position: 0% center;
+    }
+
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.animate-birthday-pulse {
+    animation: birthday-pulse 2s infinite;
+    box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.7);
+}
+
+@keyframes birthday-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(255, 105, 180, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 105, 180, 0);
+    }
+}
+
+.birthday-progress-bar {
+    width: 100%;
+    transform-origin: left;
+    animation-name: countdown;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes countdown {
+    0% {
+        width: 100%;
+    }
+
+    100% {
+        width: 0%;
+    }
+}
+
+/* 浮動動畫效果 */
+.float-animation {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
