@@ -24,7 +24,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl">
-            BTS 防彈少年團粉絲互動平台
+            真人 AI 偶像平台
           </h1>
           <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
             為 ARMY 打造的專屬平台，傳遞防彈少年團的音樂與故事
