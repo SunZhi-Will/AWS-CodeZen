@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Navigation from '../components/Navigation';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -33,7 +33,7 @@ interface CookieReply {
 interface PostProps {
     id: string;
     idolName: string;
-    idolAvatar: string | null;
+    idolAvatar?: string | null;
     avatarText?: string;
     content: string;
     imageUrl?: string;
@@ -46,7 +46,7 @@ interface PostProps {
     audioUrl?: string;
     audioCoverUrl?: string;
     postType: 'image' | 'video' | 'music';
-    likes: number;  // 改為數字類型
+    likes: number;
     comments: number;
     timestamp: string;
     isLiked?: boolean;
@@ -189,7 +189,7 @@ export default function IdolMomentsClientPage() {
     });
 
     // 從 API 獲取帖子
-    const fetchPosts = async () => {
+    const fetchPosts = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/posts');
@@ -218,10 +218,10 @@ export default function IdolMomentsClientPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     // 新增的函數：處理新發布的貼文
-    const handleNewPost = (event: Event) => {
+    const handleNewPost = useCallback((event: Event) => {
         const customEvent = event as CustomEvent<PostProps>;
         const newPost = customEvent.detail;
         if (newPost) {
@@ -234,10 +234,10 @@ export default function IdolMomentsClientPage() {
                 [newPost.id]: false
             }));
         }
-    };
+    }, []);
 
     // 新增的函數：處理留言更新
-    const handleCommentUpdate = (event: Event) => {
+    const handleCommentUpdate = useCallback((event: Event) => {
         const customEvent = event as CustomEvent<{ postId: string, newCount: number }>;
         const { postId, newCount } = customEvent.detail;
         if (postId) {
@@ -250,7 +250,7 @@ export default function IdolMomentsClientPage() {
                 )
             );
         }
-    };
+    }, []);
 
     // 初始載入
     useEffect(() => {
@@ -270,7 +270,7 @@ export default function IdolMomentsClientPage() {
             window.removeEventListener('newPostPublished', handleNewPost);
             window.removeEventListener('commentUpdated', handleCommentUpdate);
         };
-    }, []);
+    }, [fetchPosts, handleNewPost, handleCommentUpdate]);
 
     // 處理高亮顯示
     useEffect(() => {
@@ -448,8 +448,24 @@ export default function IdolMomentsClientPage() {
 }
 
 // 簡化後的貼文組件
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function SimplifiedPost({ id, idolName, idolAvatar, avatarText, content, imageUrl, imageText, videoUrl, musicTitle, musicArtist, musicDuration, embeddedUrl, audioUrl, audioCoverUrl, postType, likes, comments, timestamp, isLiked, onLike, onDelete }: PostProps) {
+function SimplifiedPost({
+    id,
+    idolName,
+    avatarText,
+    content,
+    imageUrl,
+    imageText,
+    musicTitle,
+    musicArtist,
+    musicDuration,
+    postType,
+    likes,
+    comments,
+    timestamp,
+    isLiked,
+    onLike,
+    onDelete
+}: PostProps) {
     const [commentInput, setCommentInput] = useState('');
     const [showComments, setShowComments] = useState(false);
     const [commentsList, setCommentsList] = useState<CommentItem[]>([]);
@@ -467,7 +483,7 @@ function SimplifiedPost({ id, idolName, idolAvatar, avatarText, content, imageUr
     const [selectedRecommendations, setSelectedRecommendations] = useState<string[]>([]);
 
     // 從 API 獲取評論
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         setIsLoadingComments(true);
         setCommentError(null);
 
@@ -499,24 +515,10 @@ function SimplifiedPost({ id, idolName, idolAvatar, avatarText, content, imageUr
         } finally {
             setIsLoadingComments(false);
         }
-    };
-
-    // 當顯示評論時加載數據
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        if (showComments && commentsList.length === 0) {
-            fetchComments();
-        }
-    }, [showComments, id]);
-
-    // 初始化推薦內容
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        generateRecommendations();
-    }, [idolName, postType, musicTitle, musicArtist, embeddedUrl]);
+    }, [id, idolName]);
 
     // 生成推薦內容
-    const generateRecommendations = () => {
+    const generateRecommendations = useCallback(() => {
         // 預設推薦內容區塊 - 完整版
         const defaultSections: RecommendationSectionType[] = [
             // 相關音樂區塊
@@ -689,7 +691,19 @@ function SimplifiedPost({ id, idolName, idolAvatar, avatarText, content, imageUr
 
         setRecommendationSections(defaultSections);
         setSelectedRecommendations(defaultSections.filter(s => s.enabled).map(s => s.id));
-    };
+    }, [idolName, postType, musicTitle, musicArtist, musicDuration]);
+
+    // 初始化推薦內容
+    useEffect(() => {
+        generateRecommendations();
+    }, [generateRecommendations]);
+
+    // 當顯示評論時加載數據
+    useEffect(() => {
+        if (showComments && commentsList.length === 0) {
+            fetchComments();
+        }
+    }, [showComments, commentsList.length, fetchComments]);
 
     // 重置為隨機推薦
     const randomizeRecommendations = () => {
@@ -894,11 +908,12 @@ function SimplifiedPost({ id, idolName, idolAvatar, avatarText, content, imageUr
 
             {/* 貼文內容（圖片/影片/音樂） */}
             {postType === 'image' && imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <Image
                     src={imageUrl}
                     alt={imageText || '貼文圖片'}
                     className="w-full h-auto"
+                    width={500}
+                    height={300}
                 />
             )}
 

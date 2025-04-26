@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     getItem,
     putItem,
-    queryItems,
     scanItems
 } from '../../utils/dynamoDBUtils';
 

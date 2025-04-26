@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User, UserRole } from '../../../types/user';
 import {
     getItem,
-    putItem,
     queryItems,
     scanItems
 } from '../../utils/dynamoDBUtils';
