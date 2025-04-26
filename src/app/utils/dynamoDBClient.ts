@@ -2,7 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
 // 檢查環境變數是否設置
-const region = process.env.REGION || 'ap-northeast-1';
+const region = process.env.NEXT_PUBLIC_REGION || 'ap-northeast-1';
 const accessKeyId = process.env.NEXT_PUBLIC_ACCESS_KEY_ID;
 const secretAccessKey = process.env.NEXT_PUBLIC_SECRET_ACCESS_KEY;
 
