@@ -1,44 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-
-// 初始化資料庫
-let db: ReturnType<typeof Database> | null = null;
-
-function initializeDatabase() {
-    if (db) return db;
-
-    try {
-        // 確保資料庫目錄存在
-        const dbDir = path.join(process.cwd(), 'data');
-        if (!fs.existsSync(dbDir)) {
-            fs.mkdirSync(dbDir, { recursive: true });
-        }
-
-        // 初始化資料庫連接
-        const dbPath = path.join(dbDir, 'idol_platform.db');
-        db = new Database(dbPath);
-
-        // 創建評論表 (如果不存在)
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS comments (
-                id TEXT PRIMARY KEY,
-                postId TEXT NOT NULL,
-                username TEXT NOT NULL,
-                content TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                createdAt INTEGER NOT NULL,
-                FOREIGN KEY (postId) REFERENCES posts(id) ON DELETE CASCADE
-            )
-        `);
-
-        return db;
-    } catch (error) {
-        console.error('初始化資料庫時出錯:', error);
-        return null;
-    }
-}
+import {
+    getItem,
+    putItem,
+    queryItems,
+    deleteItem,
+    updateItem
+} from '../../utils/dynamoDBUtils';
 
 // 生成唯一ID
 function generateUniqueId() {
@@ -47,12 +14,6 @@ function generateUniqueId() {
 
 // 獲取貼文的所有評論
 export async function GET(request: NextRequest) {
-    initializeDatabase();
-
-    if (!db) {
-        return NextResponse.json({ error: '資料庫連接失敗' }, { status: 500 });
-    }
-
     try {
         const url = new URL(request.url);
         const postId = url.searchParams.get('postId');
@@ -61,8 +22,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: '缺少貼文ID' }, { status: 400 });
         }
 
-        // 獲取指定貼文的所有評論，按創建時間降序排序
-        const comments = db.prepare('SELECT * FROM comments WHERE postId = ? ORDER BY createdAt DESC').all(postId);
+        // 使用 PostIdIndex 查詢特定貼文的所有評論
+        const comments = await queryItems(
+            'Comments',
+            'PostIdIndex',
+            'postId = :postId',
+            { ':postId': postId }
+        );
+
+        // 手動按創建時間降序排序
+        comments.sort((a, b) => b.createdAt - a.createdAt);
 
         return NextResponse.json(comments);
     } catch (error) {
@@ -73,12 +42,6 @@ export async function GET(request: NextRequest) {
 
 // 新增評論
 export async function POST(request: NextRequest) {
-    initializeDatabase();
-
-    if (!db) {
-        return NextResponse.json({ error: '資料庫連接失敗' }, { status: 500 });
-    }
-
     try {
         const commentData = await request.json();
 
@@ -102,14 +65,21 @@ export async function POST(request: NextRequest) {
             createdAt
         };
 
-        // 插入資料庫
-        db.prepare(`
-            INSERT INTO comments (id, postId, username, content, timestamp, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(comment.id, comment.postId, comment.username, comment.content, comment.timestamp, comment.createdAt);
+        // 儲存到 DynamoDB
+        await putItem('Comments', comment);
 
         // 更新貼文的評論數量
-        db.prepare('UPDATE posts SET comments = comments + 1 WHERE id = ?').run(comment.postId);
+        // 獲取當前貼文
+        const post = await getItem('Posts', { id: comment.postId });
+        if (post) {
+            // 更新評論計數
+            await updateItem(
+                'Posts',
+                { id: comment.postId },
+                'SET comments = comments + :incr',
+                { ':incr': 1 }
+            );
+        }
 
         return NextResponse.json({ success: true, comment });
     } catch (error) {
@@ -120,12 +90,6 @@ export async function POST(request: NextRequest) {
 
 // 刪除評論
 export async function DELETE(request: NextRequest) {
-    initializeDatabase();
-
-    if (!db) {
-        return NextResponse.json({ error: '資料庫連接失敗' }, { status: 500 });
-    }
-
     try {
         const url = new URL(request.url);
         const id = url.searchParams.get('id');
@@ -135,15 +99,27 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: '缺少評論ID或貼文ID' }, { status: 400 });
         }
 
-        // 刪除評論
-        const result = db.prepare('DELETE FROM comments WHERE id = ?').run(id);
-
-        if (result.changes === 0) {
+        // 檢查評論是否存在
+        const comment = await getItem('Comments', { id });
+        if (!comment) {
             return NextResponse.json({ error: '評論不存在' }, { status: 404 });
         }
 
+        // 刪除評論
+        await deleteItem('Comments', { id });
+
         // 更新貼文的評論數量
-        db.prepare('UPDATE posts SET comments = MAX(comments - 1, 0) WHERE id = ?').run(postId);
+        const post = await getItem('Posts', { id: postId });
+        if (post) {
+            // 確保評論計數不會低於0
+            const newCount = Math.max((post.comments || 0) - 1, 0);
+            await updateItem(
+                'Posts',
+                { id: postId },
+                'SET comments = :newCount',
+                { ':newCount': newCount }
+            );
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {

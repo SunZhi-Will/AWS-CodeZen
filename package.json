@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.465.0",
+    "@aws-sdk/lib-dynamodb": "^3.465.0",
+    "aws-sdk": "^2.1508.0",
     "better-sqlite3": "^11.9.1",
     "canvas-confetti": "^1.9.3",
     "framer-motion": "^12.9.2",

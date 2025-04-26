@@ -41,3 +41,5 @@ next-env.d.ts
 /data/*.db-wal
 /data/*.sqlite
 /data/*.sqlite3
+
+.env
