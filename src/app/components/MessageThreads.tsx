@@ -1,4 +1,6 @@
 import React from 'react';
+import AiReplySuggestion from './MessageThreadsAI';
+import { processMessageReply } from '../utils/stepFunctionsMessageFlow';
 
 // 定義指標類型
 
@@ -50,13 +52,29 @@ export default function MessageThreads({
     handleReplyInputChange,
     handleSendReply,
     toggleAISuggestion,
+    useRecommendedReply,
     currentPage,
     totalPages,
     onPageChange
 }: MessageThreadsProps) {
 
+    // 處理 AI 建議回覆的選擇
+    const handleSelectAiReply = async (messageId: number, replyContent: string, replyMode: string) => {
+        try {
+            // 調用 Step Functions 處理回覆
+            await processMessageReply(messageId, replyContent, replyMode === '情感向' ? 'emotion' : replyMode === '品牌向' ? 'brand' : 'mixed');
 
+            // 使用選擇的回覆
+            handleSendReply(messageId, replyContent, replyMode);
 
+            // 關閉 AI 建議面板
+            toggleAISuggestion(messageId);
+        } catch (error) {
+            console.error('處理 AI 回覆時發生錯誤', error);
+            // 即使處理出錯，仍然嘗試發送回覆
+            handleSendReply(messageId, replyContent, replyMode);
+        }
+    };
 
     // 渲染分頁按鈕
     const renderPaginationButtons = () => {
@@ -194,7 +212,7 @@ export default function MessageThreads({
                                         </div>
                                     )}
 
-                                    {/* 回覆建議區 */}
+                                    {/* 回覆建議區 - 集成 Step Functions AI */}
                                     {message.status === '待回覆' && (
                                         <>
                                             {!showAISuggestions[message.id] ? (
@@ -208,81 +226,11 @@ export default function MessageThreads({
                                                     顯示 AI 回覆建議
                                                 </button>
                                             ) : (
-                                                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-600">
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">AI 回覆建議</h5>
-                                                        <div className="flex space-x-2">
-                                                            <div className="flex space-x-1">
-                                                                <button className="px-2 py-1 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-400 rounded-full hover:bg-pink-200 dark:hover:bg-pink-800/50 transition-colors">
-                                                                    情感向
-                                                                </button>
-                                                                <button className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors">
-                                                                    品牌向
-                                                                </button>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => toggleAISuggestion(message.id)}
-                                                                className="p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                                                            onClick={() => handleSendReply(message.id, '謝謝你的期待與支持！💕 新歌正在緊鑼密鼓製作中，預計下個月就會發布喔！關於演唱會，我們正在規劃年底的小型見面會，請持續關注我的官方公告～', '情感向')}>
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-xs text-pink-500 dark:text-pink-400">情感向</span>
-                                                                <button
-                                                                    className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleSendReply(message.id, '謝謝你的期待與支持！💕 新歌正在緊鑼密鼓製作中，預計下個月就會發布喔！關於演唱會，我們正在規劃年底的小型見面會，請持續關注我的官方公告～', '情感向');
-                                                                    }}
-                                                                >
-                                                                    使用此回覆
-                                                                </button>
-                                                            </div>
-                                                            <p className="text-sm text-gray-700 dark:text-gray-300">謝謝你的期待與支持！💕 新歌正在緊鑼密鼓製作中，預計下個月就會發布喔！關於演唱會，我們正在規劃年底的小型見面會，請持續關注我的官方公告～</p>
-                                                        </div>
-
-                                                        <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                                                            onClick={() => handleSendReply(message.id, '感謝您的關注！星光夢想家將於下個月發布全新單曲，並計劃在年底舉辦粉絲見面會。詳細資訊將透過官方管道公告，建議您訂閱官方通知以獲取最新消息。', '品牌向')}>
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-xs text-blue-500 dark:text-blue-400">品牌向</span>
-                                                                <button
-                                                                    className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleSendReply(message.id, '感謝您的關注！星光夢想家將於下個月發布全新單曲，並計劃在年底舉辦粉絲見面會。詳細資訊將透過官方管道公告，建議您訂閱官方通知以獲取最新消息。', '品牌向');
-                                                                    }}
-                                                                >
-                                                                    使用此回覆
-                                                                </button>
-                                                            </div>
-                                                            <p className="text-sm text-gray-700 dark:text-gray-300">感謝您的關注！星光夢想家將於下個月發布全新單曲，並計劃在年底舉辦粉絲見面會。詳細資訊將透過官方管道公告，建議您訂閱官方通知以獲取最新消息。</p>
-                                                        </div>
-
-                                                        <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                                                            onClick={() => handleSendReply(message.id, '你好，感謝支持！✨ 新歌預計下個月發布，我們也在籌備年底的演唱會活動。所有最新消息都會在官方社群平台優先公布，記得追蹤我們不錯過任何重要消息哦！', '混合風格')}>
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-xs text-purple-500 dark:text-purple-400">混合風格</span>
-                                                                <button
-                                                                    className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleSendReply(message.id, '你好，感謝支持！✨ 新歌預計下個月發布，我們也在籌備年底的演唱會活動。所有最新消息都會在官方社群平台優先公布，記得追蹤我們不錯過任何重要消息哦！', '混合風格');
-                                                                    }}
-                                                                >
-                                                                    使用此回覆
-                                                                </button>
-                                                            </div>
-                                                            <p className="text-sm text-gray-700 dark:text-gray-300">你好，感謝支持！✨ 新歌預計下個月發布，我們也在籌備年底的演唱會活動。所有最新消息都會在官方社群平台優先公布，記得追蹤我們不錯過任何重要消息哦！</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <AiReplySuggestion
+                                                    message={message}
+                                                    onSelectReply={(content, mode) => handleSelectAiReply(message.id, content, mode)}
+                                                    onClose={() => toggleAISuggestion(message.id)}
+                                                />
                                             )}
                                         </>
                                     )}

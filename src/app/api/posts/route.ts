@@ -13,29 +13,47 @@ function generateUniqueId() {
 // 獲取所有貼文
 export async function GET(request: NextRequest) {
     try {
+        console.log('開始處理貼文 GET 請求');
         const url = new URL(request.url);
         const id = url.searchParams.get('id');
 
         if (id) {
+            console.log(`嘗試獲取特定貼文，ID: ${id}`);
             // 獲取特定貼文
             const post = await getItem('Posts', { id });
 
             if (!post) {
+                console.log(`貼文不存在，ID: ${id}`);
                 return NextResponse.json({ error: '貼文不存在' }, { status: 404 });
             }
 
+            console.log(`已成功獲取貼文，ID: ${id}`);
             return NextResponse.json(post);
         } else {
+            console.log('嘗試獲取所有貼文');
             // 獲取所有貼文，按創建時間降序排序
-            // 使用CreatedAtIndex
             const posts = await scanItems('Posts');
+
+            // 檢查是否成功獲取貼文
+            if (!posts || !Array.isArray(posts)) {
+                console.error('無法獲取貼文或回傳值不是陣列', posts);
+                return NextResponse.json({ error: '獲取貼文失敗，伺服器回傳格式不正確' }, { status: 500 });
+            }
+
+            console.log(`成功獲取 ${posts.length} 篇貼文`);
             // 手動排序，因為scan不支持排序
             posts.sort((a, b) => b.createdAt - a.createdAt);
             return NextResponse.json(posts);
         }
     } catch (error) {
         console.error('獲取貼文時出錯:', error);
-        return NextResponse.json({ error: '獲取貼文失敗' }, { status: 500 });
+        // 提供更詳細的錯誤信息
+        const errorMessage = error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : '未知錯誤';
+
+        console.error(`詳細錯誤訊息: ${errorMessage}`);
+        return NextResponse.json({ error: `獲取貼文失敗: ${errorMessage}` }, { status: 500 });
     }
 }
 

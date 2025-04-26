@@ -329,11 +329,18 @@ export async function scanItems(tableName: string) {
     };
 
     try {
+        console.log(`開始掃描表格 ${tableName}`);
         const result = await dynamoDBClient.send(new ScanCommand(params));
+        console.log(`成功從表格 ${tableName} 獲取 ${result.Items?.length || 0} 個項目`);
         return result.Items || [];
     } catch (error) {
         console.error(`掃描 ${tableName} 時出錯:`, error);
-        throw error;
+        // 增加更詳細的錯誤記錄
+        if (error instanceof Error) {
+            console.error(`錯誤類型: ${error.name}, 錯誤訊息: ${error.message}`);
+            console.error(`錯誤堆疊: ${error.stack}`);
+        }
+        throw new Error(`掃描 ${tableName} 失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
     }
 }
 
