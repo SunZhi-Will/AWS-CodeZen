@@ -11,7 +11,7 @@ import {
     SendTaskSuccessCommandInput
 } from '@aws-sdk/client-sfn';
 import stepFunctionsClient from './stepFunctionsClient';
-import { getStateMachineArn, STEP_FUNCTIONS_MACHINES } from './stepFunctionsMachines';
+import { getStateMachineArn } from './stepFunctionsMachines';
 
 /**
  * 啟動 Step Functions 狀態機執行
@@ -22,7 +22,7 @@ import { getStateMachineArn, STEP_FUNCTIONS_MACHINES } from './stepFunctionsMach
  */
 export async function startExecution(
     stateMachineArn: string,
-    input: Record<string, any>,
+    input: Record<string, unknown>,
     name?: string
 ) {
     const params: StartExecutionCommandInput = {
@@ -127,7 +127,7 @@ export async function stopExecution(
  */
 export async function sendTaskSuccess(
     taskToken: string,
-    output: Record<string, any>
+    output: Record<string, unknown>
 ) {
     const params: SendTaskSuccessCommandInput = {
         taskToken,
@@ -155,16 +155,35 @@ export async function waitForExecution(
     executionArn: string,
     intervalMs: number = 2000,
     timeoutMs: number = 300000
-) {
+): Promise<{
+    status: string | undefined;
+    rawOutput: string | null;
+    output: Record<string, unknown> | null;
+    execution: unknown;
+}> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
         const execution = await describeExecution(executionArn);
 
         if (execution.status !== 'RUNNING') {
+            // 保留原始回應格式，不對 output 進行 JSON.parse 處理
+            let rawOutput = null;
+            let parsedOutput = null;
+
+            if (execution.output) {
+                rawOutput = execution.output;
+                try {
+                    parsedOutput = JSON.parse(execution.output);
+                } catch (e) {
+                    console.error('解析輸出時發生錯誤:', e);
+                }
+            }
+
             return {
                 status: execution.status,
-                output: execution.output ? JSON.parse(execution.output) : null,
+                rawOutput: rawOutput,
+                output: parsedOutput,
                 execution
             };
         }
@@ -184,7 +203,7 @@ export async function waitForExecution(
  */
 export async function runDataProcessingWorkflow(
     workflowType: 'ETL' | 'ANALYSIS' | 'MIGRATION' | 'IDOL_MULTIMODAL',
-    inputData: Record<string, any>
+    inputData: Record<string, unknown>
 ) {
     // 從配置獲取狀態機 ARN
     const stateMachineArn = getStateMachineArn(workflowType);
@@ -219,7 +238,7 @@ export async function runDataProcessingWorkflow(
 export async function startIdolMultimodalWorkflow(
     mediaId: string,
     mediaType: 'image' | 'video' | 'audio' | 'text',
-    contentData: Record<string, any>
+    contentData: Record<string, unknown>
 ) {
     const input = {
         mediaId,

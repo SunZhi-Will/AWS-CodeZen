@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { runDataProcessingWorkflow, startIdolMultimodalWorkflow } from '../utils/stepFunctionsUtils';
 
 // 執行狀態類型
@@ -9,9 +9,10 @@ type ExecutionStatus = 'idle' | 'starting' | 'running' | 'completed' | 'failed';
 // 工作流程結果類型
 type WorkflowResult = {
     status?: string;
-    output?: any;
-    execution?: any;
+    output?: Record<string, unknown> | null;
+    execution?: Record<string, unknown> | unknown;
     error?: string;
+    rawOutput?: string | null;
 };
 
 // 媒體資料類型
@@ -28,7 +29,7 @@ type MediaData = {
 export default function StepFunctionsExample() {
     // 狀態管理
     const [workflowType, setWorkflowType] = useState<'ETL' | 'ANALYSIS' | 'MIGRATION' | 'IDOL_MULTIMODAL'>('IDOL_MULTIMODAL');
-    const [inputData, setInputData] = useState<Record<string, any>>({
+    const [inputData, setInputData] = useState<Record<string, string | string[]>>({
         source: 'sample_data',
         destination: 'processed_data',
         transformations: ['filter', 'sort', 'aggregate']
@@ -79,7 +80,7 @@ export default function StepFunctionsExample() {
     };
 
     // 處理輸入數據變更
-    const handleInputChange = (key: string, value: any) => {
+    const handleInputChange = (key: string, value: string | string[]) => {
         setInputData(prev => ({
             ...prev,
             [key]: value
@@ -87,7 +88,7 @@ export default function StepFunctionsExample() {
     };
 
     // 處理媒體資料變更
-    const handleMediaDataChange = (key: string, value: any) => {
+    const handleMediaDataChange = (key: string, value: string | string[]) => {
         if (key.includes('.')) {
             const [parent, child] = key.split('.');
             if (parent === 'contentData') {
@@ -185,7 +186,7 @@ export default function StepFunctionsExample() {
                         <input
                             type="text"
                             className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={inputData.source}
+                            value={inputData.source as string}
                             onChange={(e) => handleInputChange('source', e.target.value)}
                         />
                     </div>
@@ -194,7 +195,7 @@ export default function StepFunctionsExample() {
                         <input
                             type="text"
                             className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={inputData.destination}
+                            value={inputData.destination as string}
                             onChange={(e) => handleInputChange('destination', e.target.value)}
                         />
                     </div>
@@ -214,7 +215,7 @@ export default function StepFunctionsExample() {
                 <select
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={workflowType}
-                    onChange={(e) => setWorkflowType(e.target.value as any)}
+                    onChange={(e) => setWorkflowType(e.target.value as 'ETL' | 'ANALYSIS' | 'MIGRATION' | 'IDOL_MULTIMODAL')}
                 >
                     <option value="IDOL_MULTIMODAL">偶像多模態處理</option>
                     <option value="ETL">ETL 資料處理</option>
@@ -258,9 +259,30 @@ export default function StepFunctionsExample() {
                 {result && (
                     <div className="mt-4">
                         <h3 className="text-md font-medium text-gray-700 mb-2">執行結果</h3>
-                        <div className="bg-gray-100 p-3 rounded-md overflow-auto max-h-64">
+
+                        {/* 顯示偶像回覆（如果存在） */}
+                        {result.output && typeof result.output === 'object' && 'idol_reply' in result.output && (
+                            <div className="bg-blue-50 p-3 rounded-md overflow-auto max-h-64 mb-3 border border-blue-200">
+                                <h4 className="text-sm font-medium text-blue-700 mb-2">偶像回覆</h4>
+                                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                    {String(result.output.idol_reply)}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* 顯示解析後的輸出 */}
+                        <div className="bg-gray-100 p-3 rounded-md overflow-auto max-h-64 mb-3">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">處理後結果</h4>
                             <pre className="text-xs text-gray-800">
-                                {JSON.stringify(result, null, 2)}
+                                {JSON.stringify(result.output, null, 2)}
+                            </pre>
+                        </div>
+
+                        {/* 顯示原始回應格式 */}
+                        <div className="bg-gray-100 p-3 rounded-md overflow-auto max-h-64">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">原始回應格式</h4>
+                            <pre className="text-xs text-gray-800">
+                                {result.rawOutput}
                             </pre>
                         </div>
                     </div>

@@ -52,7 +52,6 @@ export default function MessageThreads({
     handleReplyInputChange,
     handleSendReply,
     toggleAISuggestion,
-    useRecommendedReply,
     currentPage,
     totalPages,
     onPageChange

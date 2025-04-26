@@ -1,5 +1,5 @@
 import { startIdolMultimodalWorkflow } from './stepFunctionsUtils';
-import { STEP_FUNCTIONS_MACHINES } from './stepFunctionsMachines';
+
 
 /**
  * 訊息回覆類型定義
@@ -34,6 +34,7 @@ export interface AiReplyRecommendation {
         brandScore: number;
         engagementPotential: number;
     };
+    originalIdolReply?: string;
 }
 
 /**
@@ -67,7 +68,28 @@ export async function getAiReplyRecommendations(message: MessageContent): Promis
 
         // 解析結果
         if (result && result.output) {
-            return result.output as AiReplyRecommendation;
+            // 檢查是否有 idol_reply 字段，這是後端可能直接返回的格式
+            if (result.rawOutput) {
+                try {
+                    const rawData = JSON.parse(result.rawOutput);
+                    if (rawData && rawData.idol_reply) {
+                        // 等待1秒，模擬各個回覆請求之間的延遲
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+
+                        // 將 idol_reply 整合到所有回覆中
+                        return {
+                            ...(result.output as unknown as AiReplyRecommendation),
+                            emotionReply: rawData.idol_reply, // 將 idol_reply 應用到情感回覆
+                            brandReply: rawData.idol_reply,   // 將 idol_reply 應用到品牌回覆
+                            mixedReply: rawData.idol_reply,   // 將 idol_reply 應用到混合風格回覆
+                            originalIdolReply: rawData.idol_reply // 保存原始的 idol_reply
+                        };
+                    }
+                } catch (e) {
+                    console.error('解析原始回覆時發生錯誤:', e);
+                }
+            }
+            return result.output as unknown as AiReplyRecommendation;
         }
 
         // 若沒有正確結果，傳回預設回覆
@@ -112,7 +134,7 @@ export async function processMessageReply(
     messageId: number,
     replyContent: string,
     replyStyle: MessageReplyStyle
-): Promise<any> {
+): Promise<unknown> {
     try {
         // 準備輸入資料
         const inputData = {

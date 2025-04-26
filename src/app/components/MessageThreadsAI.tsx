@@ -13,6 +13,9 @@ export default function AiReplySuggestion({ message, onSelectReply, onClose }: A
     const [suggestions, setSuggestions] = useState<AiReplyRecommendation | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showEmotion, setShowEmotion] = useState(false);
+    const [showBrand, setShowBrand] = useState(false);
+    const [showMixed, setShowMixed] = useState(false);
 
     useEffect(() => {
         async function fetchSuggestions() {
@@ -20,6 +23,17 @@ export default function AiReplySuggestion({ message, onSelectReply, onClose }: A
                 setLoading(true);
                 const result = await getAiReplyRecommendations(message);
                 setSuggestions(result);
+
+                setShowEmotion(true);
+
+                setTimeout(() => {
+                    setShowBrand(true);
+                }, 1000);
+
+                setTimeout(() => {
+                    setShowMixed(true);
+                }, 2000);
+
             } catch (err) {
                 console.error('獲取 AI 回覆建議時發生錯誤:', err);
                 setError('無法載入 AI 回覆建議，請稍後再試。');
@@ -102,65 +116,81 @@ export default function AiReplySuggestion({ message, onSelectReply, onClose }: A
                 </div>
             </div>
             <div className="space-y-3">
-                {/* 情感向回覆 */}
-                <div
-                    className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                    onClick={() => onSelectReply(suggestions.emotionReply, '情感向')}
-                >
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-pink-500 dark:text-pink-400">情感向</span>
-                        <button
-                            className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectReply(suggestions.emotionReply, '情感向');
-                            }}
-                        >
-                            使用此回覆
-                        </button>
+                {/* 原始偶像回覆（如果存在） */}
+                {suggestions.originalIdolReply && showEmotion && (
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800/30 mb-2">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-medium text-yellow-700 dark:text-yellow-500">原始偶像回覆</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.originalIdolReply}</p>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.emotionReply}</p>
-                </div>
+                )}
+
+                {/* 情感向回覆 */}
+                {showEmotion && (
+                    <div
+                        className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
+                        onClick={() => onSelectReply(suggestions.emotionReply, '情感向')}
+                    >
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-pink-500 dark:text-pink-400">情感向</span>
+                            <button
+                                className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectReply(suggestions.emotionReply, '情感向');
+                                }}
+                            >
+                                使用此回覆
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.emotionReply}</p>
+                    </div>
+                )}
 
                 {/* 品牌向回覆 */}
-                <div
-                    className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                    onClick={() => onSelectReply(suggestions.brandReply, '品牌向')}
-                >
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-blue-500 dark:text-blue-400">品牌向</span>
-                        <button
-                            className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectReply(suggestions.brandReply, '品牌向');
-                            }}
-                        >
-                            使用此回覆
-                        </button>
+                {showBrand && (
+                    <div
+                        className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
+                        onClick={() => onSelectReply(suggestions.brandReply, '品牌向')}
+                    >
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-blue-500 dark:text-blue-400">品牌向</span>
+                            <button
+                                className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectReply(suggestions.brandReply, '品牌向');
+                                }}
+                            >
+                                使用此回覆
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.brandReply}</p>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.brandReply}</p>
-                </div>
+                )}
 
                 {/* 混合風格回覆 */}
-                <div
-                    className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
-                    onClick={() => onSelectReply(suggestions.mixedReply, '混合風格')}
-                >
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-purple-500 dark:text-purple-400">混合風格</span>
-                        <button
-                            className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectReply(suggestions.mixedReply, '混合風格');
-                            }}
-                        >
-                            使用此回覆
-                        </button>
+                {showMixed && (
+                    <div
+                        className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow cursor-pointer group"
+                        onClick={() => onSelectReply(suggestions.mixedReply, '混合風格')}
+                    >
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-purple-500 dark:text-purple-400">混合風格</span>
+                            <button
+                                className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectReply(suggestions.mixedReply, '混合風格');
+                                }}
+                            >
+                                使用此回覆
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.mixedReply}</p>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{suggestions.mixedReply}</p>
-                </div>
+                )}
             </div>
         </div>
     );
