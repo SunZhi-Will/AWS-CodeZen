@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getCurrentUser, logout, User } from '../utils/authUtils';
 import Image from 'next/image';
 
@@ -14,10 +14,30 @@ const sidebarItems = [
     { name: '系統健康', path: '/admin/system-health', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
 ];
 
+// 隨機顏色陣列
+const avatarColors = [
+    'bg-blue-500',
+    'bg-red-500',
+    'bg-green-500',
+    'bg-yellow-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-teal-500',
+];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+    // 為用戶分配一個固定的隨機顏色
+    const avatarColor = useMemo(() => {
+        if (!currentUser) return avatarColors[0];
+        // 根據用戶名生成一個固定的索引
+        const colorIndex = currentUser.username.charCodeAt(0) % avatarColors.length;
+        return avatarColors[colorIndex];
+    }, [currentUser]);
 
     useEffect(() => {
         async function fetchUser() {
@@ -59,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <h2 className="text-lg font-semibold text-gray-800">服務端管理介面</h2>
                     {currentUser && (
                         <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-2">
+                            <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center overflow-hidden mr-2 text-white font-medium`}>
                                 {currentUser.avatar ? (
                                     <Image src={currentUser.avatar} alt={currentUser.displayName} width={32} height={32} className="w-full h-full object-cover" />
                                 ) : (

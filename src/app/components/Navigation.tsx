@@ -1,10 +1,23 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getCurrentUser, logout, User, UserRole } from '../utils/authUtils';
 import Image from 'next/image';
+
+// 隨機顏色陣列
+const avatarColors = [
+    'bg-blue-500',
+    'bg-red-500',
+    'bg-green-500',
+    'bg-yellow-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-teal-500',
+];
+
 interface NavigationProps {
     title?: string;
 }
@@ -15,6 +28,14 @@ export default function Navigation({ title = "真人 AI 偶像" }: NavigationPro
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // 為用戶分配一個固定的隨機顏色
+    const avatarColor = useMemo(() => {
+        if (!currentUser) return avatarColors[0];
+        // 根據用戶名生成一個固定的索引
+        const colorIndex = currentUser.username.charCodeAt(0) % avatarColors.length;
+        return avatarColors[colorIndex];
+    }, [currentUser]);
 
     // 在客戶端初始化檢查用戶登入狀態
     useEffect(() => {
@@ -132,11 +153,11 @@ export default function Navigation({ title = "真人 AI 偶像" }: NavigationPro
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                     className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center overflow-hidden`}>
                                         {currentUser.avatar ? (
                                             <Image src={currentUser.avatar} alt={currentUser.displayName} width={32} height={32} className="w-full h-full object-cover" />
                                         ) : (
-                                            <span>{currentUser.displayName.charAt(0)}</span>
+                                            <span className="text-white font-medium">{currentUser.displayName.charAt(0)}</span>
                                         )}
                                     </div>
                                     <span className="font-medium text-sm">{currentUser.displayName}</span>
