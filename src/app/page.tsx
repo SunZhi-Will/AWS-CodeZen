@@ -27,7 +27,7 @@ export default function Home() {
             真人 AI 偶像平台
           </h1>
           <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-            結合真人與 AI 技術的創新偶像互動平台，打造沉浸式粉絲體驗
+            結合真人表演與AI技術的次世代偶像互動平台，創造前所未有的沉浸式粉絲體驗
           </p>
           <div className="mt-8 flex justify-center gap-4">
 
@@ -35,13 +35,13 @@ export default function Home() {
               href="/idol-moments"
               className="px-6 py-3 rounded-md bg-purple-600 text-white text-base font-medium hover:bg-purple-700 transition-colors"
             >
-              成員動態
+              偶像動態
             </Link>
             <Link
               href="/dashboard"
               className="px-6 py-3 rounded-md bg-white text-blue-600 border border-blue-600 text-base font-medium hover:bg-blue-50 transition-colors"
             >
-              ARMY 空間
+              粉絲空間
             </Link>
           </div>
         </div>
@@ -49,46 +49,46 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <FeatureCard
             icon="🎵"
-            title="音樂作品"
-            description="探索防彈少年團完整的音樂目錄，從出道曲到最新作品。"
+            title="原創音樂"
+            description="欣賞偶像們的原創音樂作品，從數位單曲到完整專輯，展現獨特魅力。"
           />
           <FeatureCard
             icon="🌟"
-            title="社群連結"
-            description="與全球 ARMY 建立連結，分享對防彈少年團的熱愛與支持。"
+            title="互動體驗"
+            description="透過AI技術與您喜愛的偶像進行專屬互動，享受個人化的溝通體驗。"
           />
           <FeatureCard
             icon="🎬"
-            title="影像內容"
-            description="觀看 MV、表演、綜藝及紀錄片等豐富的影像內容。"
+            title="虛實結合"
+            description="觀看結合實體演出和虛擬技術的表演內容，感受前衛科技帶來的視聽盛宴。"
           />
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg mb-16">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">為何支持防彈少年團</h2>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">平台特色與優勢</h2>
           <ul className="space-y-3 text-gray-600 dark:text-gray-300">
             <li className="flex items-start">
               <span className="mr-2 text-purple-500">✓</span>
-              <span><strong>真誠的音樂創作</strong>：傳達真實生活經驗和社會議題的音樂作品</span>
+              <span><strong>AI 互動技術</strong>：透過深度學習技術，提供超越想像的偶像互動體驗</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2 text-purple-500">✓</span>
-              <span><strong>積極正面的訊息</strong>：鼓勵年輕人愛自己、追尋夢想的「Love Yourself」系列</span>
+              <span><strong>跨界合作內容</strong>：結合音樂、舞蹈、時尚、遊戲等多元領域的創新作品</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2 text-purple-500">✓</span>
-              <span><strong>慈善與社會貢獻</strong>：積極參與聯合國青年計劃和各種慈善活動</span>
+              <span><strong>全球粉絲社群</strong>：連結世界各地粉絲，共同參與偶像成長與創作過程</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2 text-purple-500">✓</span>
-              <span><strong>文化影響力</strong>：將韓國文化推向全球，打破語言與文化的藩籬</span>
+              <span><strong>沉浸式體驗</strong>：運用最新XR技術，打造身臨其境的虛實整合演出</span>
             </li>
           </ul>
         </div>
 
         <div className="border-t border-gray-200 dark:border-gray-700 pt-12">
           <h2 className="text-2xl font-bold mb-8 text-center text-gray-900 dark:text-white">
-            防彈少年團成員
+            平台偶像陣容
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <MemberCard
@@ -139,30 +139,30 @@ export default function Home() {
         </div>
 
         <div className="mt-16 border-t border-gray-200 dark:border-gray-700 pt-12">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">BTS 里程碑</h2>
+          <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">平台里程碑</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">Billboard 成就</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">數位互動創新</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                多次登上 Billboard Hot 100 和 Billboard 200 榜首，成為首支多次獲得此殊榮的韓國樂團。
+                首創AI語音互動技術，讓偶像能與粉絲進行近乎真實的對話，獲得科技創新大獎肯定。
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">格萊美提名</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">虛擬演唱會</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                多次獲得格萊美獎提名，並在全球音樂頒獎典禮上表演，展現K-pop的國際影響力。
+                舉辦首場結合實體與虛擬技術的混合演唱會，同時間吸引百萬粉絲線上參與互動。
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">聯合國演講</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">原創IP拓展</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                在聯合國大會上發表演講，傳遞「Love Yourself」的訊息，鼓勵年輕人勇於表達自我。
+                平台原創IP成功拓展至動畫、遊戲、周邊商品等多元領域，建立完整的偶像生態系統。
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">全球巡演</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">全球粉絲社群</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                舉辦多次全球巡迴演唱會，場場爆滿，在世界各地的體育場創下票房紀錄。
+                平台註冊用戶突破千萬，來自全球超過50個國家，形成多元文化交流的偶像社群。
               </p>
             </div>
           </div>

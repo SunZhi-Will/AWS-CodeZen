@@ -134,7 +134,7 @@ export default function Navigation({ title = "真人 AI 偶像" }: NavigationPro
                                 >
                                     <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                                         {currentUser.avatar ? (
-                                            <Image src={currentUser.avatar} alt={currentUser.displayName} className="w-full h-full object-cover" />
+                                            <Image src={currentUser.avatar} alt={currentUser.displayName} width={32} height={32} className="w-full h-full object-cover" />
                                         ) : (
                                             <span>{currentUser.displayName.charAt(0)}</span>
                                         )}

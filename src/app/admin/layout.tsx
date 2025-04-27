@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { getCurrentUser, logout, User } from '../utils/authUtils';
+import Image from 'next/image';
 
 const sidebarItems = [
     { name: '總覽', path: '/admin', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -13,6 +16,33 @@ const sidebarItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        async function fetchUser() {
+            try {
+                const user = await getCurrentUser();
+                setCurrentUser(user);
+
+                // 如果不是管理員則導回首頁
+                if (!user || user.role !== 'admin') {
+                    router.push('/');
+                }
+            } catch (error) {
+                console.error('獲取用戶信息出錯', error);
+                router.push('/');
+            }
+        }
+
+        fetchUser();
+    }, [router]);
+
+    const handleLogout = () => {
+        logout();
+        setCurrentUser(null);
+        router.push('/');
+    };
 
     const isActive = (path: string) => {
         if (path === '/admin') {
@@ -25,8 +55,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-screen bg-gray-100">
             {/* 側邊導航 */}
             <div className="w-64 bg-white shadow-md">
-                <div className="p-4 border-b">
+                <div className="p-4 border-b flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-800">服務端管理介面</h2>
+                    {currentUser && (
+                        <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-2">
+                                {currentUser.avatar ? (
+                                    <Image src={currentUser.avatar} alt={currentUser.displayName} width={32} height={32} className="w-full h-full object-cover" />
+                                ) : (
+                                    <span>{currentUser.displayName.charAt(0)}</span>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="text-sm text-red-600 hover:text-red-800"
+                            >
+                                登出
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <nav className="mt-4">
                     <ul>
@@ -35,8 +82,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 <Link
                                     href={item.path}
                                     className={`flex items-center px-4 py-3 text-sm ${isActive(item.path)
-                                            ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
-                                            : 'text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-blue-50 text-blue-600 border-r-4 border-blue-600'
+                                        : 'text-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
                                     <svg
