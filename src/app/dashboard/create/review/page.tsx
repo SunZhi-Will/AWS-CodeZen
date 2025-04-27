@@ -5,9 +5,24 @@ import { useRouter } from 'next/navigation';
 import Navigation from '../../../components/Navigation';
 import Image from 'next/image';
 
+interface IdolData {
+    name?: string;
+    category?: string;
+    description?: string;
+    personality?: {
+        traits?: string[];
+    };
+    appearance?: {
+        imageUrl?: string;
+    };
+    voice?: {
+        sample?: string;
+    };
+}
+
 export default function ReviewIdol() {
     const router = useRouter();
-    const [idolData, setIdolData] = useState<Record<string, any> | null>(null);
+    const [idolData, setIdolData] = useState<IdolData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

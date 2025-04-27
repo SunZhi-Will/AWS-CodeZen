@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getAiReplyRecommendations, MessageContent, AiReplyRecommendation } from '../utils/stepFunctionsMessageFlow';
 
 // 音頻檔案URL
@@ -26,10 +26,17 @@ export default function AiReplySuggestion({ message, onSelectReply, onClose }: A
         brand: false,
         mixed: false
     });
-    const audioRefs = React.useMemo(() => ({
-        emotion: useRef<HTMLAudioElement | null>(null),
-        brand: useRef<HTMLAudioElement | null>(null),
-        mixed: useRef<HTMLAudioElement | null>(null)
+
+    // 將所有 useRef 移到組件頂層
+    const emotionAudioRef = useRef<HTMLAudioElement | null>(null);
+    const brandAudioRef = useRef<HTMLAudioElement | null>(null);
+    const mixedAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    // 然後在 useMemo 中使用這些 refs
+    const audioRefs = useMemo(() => ({
+        emotion: emotionAudioRef,
+        brand: brandAudioRef,
+        mixed: mixedAudioRef
     }), []);
 
     useEffect(() => {

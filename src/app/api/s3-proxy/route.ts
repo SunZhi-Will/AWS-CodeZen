@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
             try {
                 const url = new URL(key);
                 key = url.pathname.startsWith('/') ? url.pathname.substring(1) : url.pathname;
-            } catch (unknown) {
+            } catch {
                 return NextResponse.json(
                     { error: 'URL格式無效' },
                     { status: 400 }
