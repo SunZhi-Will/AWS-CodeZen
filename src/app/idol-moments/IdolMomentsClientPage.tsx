@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useState, useEffect, useCallback } from 'react';
 import Navigation from '../components/Navigation';
 import Image from 'next/image';
@@ -9,7 +8,9 @@ import ContentPublisher from '../components/ContentPublisher';
 import { saveMessagesToCookie, getMessagesFromCookie } from '../utils/cookieUtils';
 import './post-highlight.css';
 import BirthdayNotification from '../components/BirthdayNotification';
-import RecommendationSection, { RecommendationSectionType } from '../components/RecommendationSection';
+import { RecommendationSectionType } from '../components/RecommendationSection';
+import S3Image from '../components/S3Image';
+import TextContent from '../components/TextContent';
 
 // 定義一個本地 Message 接口
 interface CookieMessage {
@@ -45,13 +46,14 @@ interface PostProps {
     embeddedUrl?: string;
     audioUrl?: string;
     audioCoverUrl?: string;
-    postType: 'image' | 'video' | 'music';
+    postType: string;
     likes: number;
     comments: number;
     timestamp: string;
     isLiked?: boolean;
     onLike?: () => void;
     onDelete?: () => void;
+    onEdit?: (post: PostProps) => void;
     commentList?: CommentItem[];
 }
 
@@ -188,6 +190,10 @@ export default function IdolMomentsClientPage() {
         message: '今天是我的生日！感謝ARMY一直以來的支持和喜愛 💜'
     });
 
+    // 編輯貼文相關狀態
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [currentEditPost, setCurrentEditPost] = useState<PostProps | null>(null);
+
     // 從 API 獲取帖子
     const fetchPosts = useCallback(async () => {
         setIsLoading(true);
@@ -252,6 +258,33 @@ export default function IdolMomentsClientPage() {
         }
     }, []);
 
+    // 新增函數：處理貼文發布事件
+    const handlePostPublish = useCallback((event: Event) => {
+        const customEvent = event as CustomEvent<{ sourcePost: { id: string, content: string, idolName: string, postType: string, timestamp: string } }>;
+        const { sourcePost } = customEvent.detail;
+
+        if (sourcePost) {
+            // 這裡可以處理發布邏輯，例如將發布的內容保存到用戶的時間軸
+            console.log('發布內容到用戶時間軸:', sourcePost);
+
+            // 可以添加到本地存儲或者發送到後端API
+            const publishedPosts = localStorage.getItem('published-posts')
+                ? JSON.parse(localStorage.getItem('published-posts') || '[]')
+                : [];
+
+            publishedPosts.unshift({
+                id: `pub-${Date.now()}`,
+                originPostId: sourcePost.id,
+                publishTime: new Date().toISOString(),
+                sourceContent: sourcePost.content,
+                sourceIdol: sourcePost.idolName,
+                sourceType: sourcePost.postType
+            });
+
+            localStorage.setItem('published-posts', JSON.stringify(publishedPosts));
+        }
+    }, []);
+
     // 初始載入
     useEffect(() => {
         fetchPosts();
@@ -264,13 +297,15 @@ export default function IdolMomentsClientPage() {
         // 添加自定義事件監聽器
         window.addEventListener('newPostPublished', handleNewPost);
         window.addEventListener('commentUpdated', handleCommentUpdate);
+        window.addEventListener('publishPost', handlePostPublish);
 
         // 清理函數
         return () => {
             window.removeEventListener('newPostPublished', handleNewPost);
             window.removeEventListener('commentUpdated', handleCommentUpdate);
+            window.removeEventListener('publishPost', handlePostPublish);
         };
-    }, [fetchPosts, handleNewPost, handleCommentUpdate]);
+    }, [fetchPosts, handleNewPost, handleCommentUpdate, handlePostPublish]);
 
     // 處理高亮顯示
     useEffect(() => {
@@ -363,6 +398,46 @@ export default function IdolMomentsClientPage() {
         }
     };
 
+    // 處理編輯貼文
+    const handleEditPost = async (post: PostProps) => {
+        try {
+            setCurrentEditPost(post);
+            setIsEditModalOpen(true);
+        } catch (error) {
+            console.error('編輯貼文時出錯:', error);
+            alert('編輯貼文失敗，請稍後再試');
+        }
+    };
+
+    // 處理更新貼文
+    const handleUpdatePost = (updatedPost: PostProps) => {
+        // 更新本地貼文列表
+        setPosts(prevPosts =>
+            prevPosts.map(post =>
+                post.id === updatedPost.id ? { ...updatedPost, isLiked: !!likedPosts[post.id] } : post
+            )
+        );
+
+        // 關閉編輯模態窗口
+        setIsEditModalOpen(false);
+        setCurrentEditPost(null);
+    };
+
+    // 監聽編輯貼文事件
+    useEffect(() => {
+        const handleEditPostEvent = (event: CustomEvent<{ post: PostProps }>) => {
+            const { post } = event.detail;
+            setCurrentEditPost(post);
+            setIsEditModalOpen(true);
+        };
+
+        window.addEventListener('editPost', handleEditPostEvent as EventListener);
+
+        return () => {
+            window.removeEventListener('editPost', handleEditPostEvent as EventListener);
+        };
+    }, []);
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Navigation title="真人 AI 偶像平台" />
@@ -423,6 +498,7 @@ export default function IdolMomentsClientPage() {
                                     isLiked={!!likedPosts[post.id]}
                                     onLike={() => handleLike(post.id)}
                                     onDelete={() => handleDeletePost(post.id)}
+                                    onEdit={() => handleEditPost(post)}
                                 />
                             </div>
                         ))}
@@ -442,6 +518,35 @@ export default function IdolMomentsClientPage() {
                         }}
                     />
                 )}
+
+                {/* 編輯貼文模態視窗 */}
+                {isEditModalOpen && currentEditPost && (
+                    <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-4 max-h-[90vh] overflow-auto">
+                            <h3 className="text-lg font-medium mb-4">編輯貼文</h3>
+                            <textarea
+                                className="w-full border dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2 mb-4"
+                                rows={4}
+                                value={currentEditPost.content}
+                                onChange={(e) => setCurrentEditPost({ ...currentEditPost, content: e.target.value })}
+                            />
+                            <div className="flex justify-end space-x-2">
+                                <button
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    className="px-4 py-2 bg-blue-500 text-white rounded text-sm"
+                                    onClick={() => handleUpdatePost(currentEditPost)}
+                                >
+                                    儲存
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
@@ -455,6 +560,10 @@ function SimplifiedPost({
     content,
     imageUrl,
     imageText,
+    videoUrl,
+    embeddedUrl,
+    audioUrl,
+    audioCoverUrl,
     musicTitle,
     musicArtist,
     musicDuration,
@@ -464,7 +573,8 @@ function SimplifiedPost({
     timestamp,
     isLiked,
     onLike,
-    onDelete
+    onDelete,
+    onEdit
 }: PostProps) {
     const [commentInput, setCommentInput] = useState('');
     const [showComments, setShowComments] = useState(false);
@@ -887,6 +997,38 @@ function SimplifiedPost({
                                         複製連結
                                     </button>
                                 </li>
+                                {onEdit && (
+                                    <li>
+                                        <button
+                                            className="w-full text-left px-3 py-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                            onClick={() => {
+                                                setShowOptions(false);
+                                                onEdit({
+                                                    id,
+                                                    idolName,
+                                                    avatarText,
+                                                    content,
+                                                    imageUrl,
+                                                    imageText,
+                                                    videoUrl,
+                                                    embeddedUrl,
+                                                    audioUrl,
+                                                    audioCoverUrl,
+                                                    musicTitle,
+                                                    musicArtist,
+                                                    musicDuration,
+                                                    postType,
+                                                    likes,
+                                                    comments,
+                                                    timestamp,
+                                                    isLiked
+                                                });
+                                            }}
+                                        >
+                                            編輯
+                                        </button>
+                                    </li>
+                                )}
                                 {onDelete && (
                                     <li>
                                         <button
@@ -908,277 +1050,171 @@ function SimplifiedPost({
 
             {/* 貼文內容（圖片/影片/音樂） */}
             {postType === 'image' && imageUrl && (
-                <Image
-                    src={imageUrl}
-                    alt={imageText || '貼文圖片'}
-                    className="w-full h-auto"
-                    width={500}
-                    height={300}
-                />
+                <div className="w-full bg-gray-100 dark:bg-gray-850 overflow-hidden">
+                    {imageUrl.startsWith('https://idol-multimodal-output.s3') ? (
+                        <S3Image
+                            s3Key={imageUrl}
+                            alt={imageText || '貼文圖片'}
+                            width={0}
+                            height={0}
+                            sizes="100vw"
+                            style={{ width: '100%', height: 'auto' }}
+                            className="transition-all hover:scale-[1.02]"
+                            loading="lazy"
+                            usePreSignedUrl={true}
+                        />
+                    ) : (
+                        <Image
+                            src={imageUrl.startsWith('http') ? imageUrl : imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}
+                            alt={imageText || '貼文圖片'}
+                            width={0}
+                            height={0}
+                            sizes="100vw"
+                            style={{ width: '100%', height: 'auto' }}
+                            className="transition-all hover:scale-[1.02]"
+                            loading="lazy"
+                        />
+                    )}
+                </div>
             )}
 
             {postType === 'video' && (
-                <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-gray-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-                    </svg>
+                <div className="aspect-video bg-gray-100 dark:bg-gray-900 overflow-hidden">
+                    {embeddedUrl && embeddedUrl.includes('youtube.com') ? (
+                        // YouTube 嵌入
+                        <iframe
+                            src={embeddedUrl}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        ></iframe>
+                    ) : videoUrl && videoUrl.startsWith('http') ? (
+                        // S3 或其他視頻 URL
+                        <video
+                            controls
+                            className="w-full h-full"
+                            poster={imageUrl || undefined}
+                        >
+                            <source
+                                src={videoUrl.startsWith('https://idol-multimodal-output.s3')
+                                    ? `/api/s3-proxy?key=${encodeURIComponent(videoUrl)}`
+                                    : videoUrl}
+                                type="video/mp4"
+                            />
+                            您的瀏覽器不支援影片播放
+                        </video>
+                    ) : (
+                        // 預設顯示播放按鈕
+                        <div className="w-full h-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-gray-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" />
+                            </svg>
+                        </div>
+                    )}
                 </div>
             )}
 
             {postType === 'music' && (
                 <div className="p-3 bg-gradient-to-r from-blue-400 to-indigo-400 text-white">
                     <div className="flex items-center">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
-                            </svg>
-                        </div>
-                        <div>
+                        {audioCoverUrl ? (
+                            <div className="w-12 h-12 mr-3 rounded overflow-hidden relative flex items-center justify-center bg-white/10">
+                                {audioCoverUrl.startsWith('https://idol-multimodal-output.s3') ? (
+                                    <S3Image
+                                        s3Key={audioCoverUrl}
+                                        alt={musicTitle || '音樂封面'}
+                                        fill
+                                        style={{ objectFit: 'contain', objectPosition: 'center' }}
+                                        usePreSignedUrl={true}
+                                    />
+                                ) : (
+                                    <Image
+                                        src={audioCoverUrl.startsWith('http') ? audioCoverUrl : audioCoverUrl.startsWith('/') ? audioCoverUrl : `/${audioCoverUrl}`}
+                                        alt={musicTitle || '音樂封面'}
+                                        fill
+                                        style={{ objectFit: 'contain', objectPosition: 'center' }}
+                                    />
+                                )}
+                            </div>
+                        ) : (
+                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
+                                </svg>
+                            </div>
+                        )}
+                        <div className="flex-1">
                             <h3 className="font-medium text-sm">{musicTitle}</h3>
                             <p className="text-xs opacity-80">{musicArtist}</p>
                         </div>
+                        {embeddedUrl ? (
+                            <button
+                                onClick={() => window.open(embeddedUrl, '_blank')}
+                                className="bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-colors"
+                                aria-label="播放音樂"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path fillRule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        ) : audioUrl ? (
+                            <audio
+                                controls
+                                className="h-8 w-36 rounded-full overflow-hidden"
+                                src={audioUrl.startsWith('https://idol-multimodal-output.s3')
+                                    ? `/api/s3-proxy?key=${encodeURIComponent(audioUrl)}`
+                                    : (audioUrl.startsWith('http') ? audioUrl : audioUrl.startsWith('/') ? audioUrl : `/${audioUrl}`)}
+                            >
+                                您的瀏覽器不支援音訊播放
+                            </audio>
+                        ) : null}
                     </div>
+                    {embeddedUrl && embeddedUrl.includes('soundcloud.com') && (
+                        <div className="mt-2 h-28 rounded overflow-hidden">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                scrolling="no"
+                                frameBorder="no"
+                                src={embeddedUrl}
+                            ></iframe>
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* 貼文內容 */}
-            <div className="px-3 py-2">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <span className="font-medium">{idolName}</span> {content}
-                </p>
-
-                {/* 計數與操作 */}
-                <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>{typeof likes === 'number' && likes >= 1000 ? `${(likes / 1000).toFixed(1)}k` : likes} 讚</span>
-                    <button
-                        onClick={() => setShowComments(!showComments)}
-                        className="hover:underline"
-                    >
-                        {commentsCount} 則留言
-                    </button>
-                </div>
-
-                {/* 貼文操作按鈕 - 移到此處 */}
-                <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-between">
-                    <button
-                        className={`text-sm flex items-center ${isLiked ? 'text-pink-500 dark:text-pink-400' : 'text-gray-700 dark:text-gray-300'}`}
-                        onClick={onLike}
-                    >
-                        {isLiked ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-1">
-                                <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                            </svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                            </svg>
-                        )}
-                        讚
-                    </button>
-                    <button
-                        className="text-sm flex items-center text-gray-700 dark:text-gray-300"
-                        onClick={() => setShowComments(!showComments)}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
-                        </svg>
-                        留言
-                    </button>
-                    <button className="text-sm flex items-center text-gray-700 dark:text-gray-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-                        </svg>
-                        分享
-                    </button>
-                </div>
-
-                {/* 留言區 */}
-                {showComments && (
-                    <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        {/* 留言列表 */}
-                        {isLoadingComments ? (
-                            <div className="flex justify-center py-2">
-                                <div className="animate-spin h-4 w-4 border-t-2 border-blue-400 rounded-full"></div>
-                            </div>
-                        ) : commentError ? (
-                            <div className="text-xs text-red-500 py-1">{commentError}</div>
-                        ) : commentsList.length > 0 ? (
-                            <div className="space-y-2 mb-2 max-h-48 overflow-y-auto">
-                                {commentsList.map(comment => (
-                                    <div key={comment.id} className="flex items-start space-x-2 mb-2">
-                                        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs">
-                                            {comment.username.charAt(0)}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg px-2 py-1">
-                                                <p className="text-xs font-medium">{comment.username}</p>
-                                                <p className="text-xs">{comment.content}</p>
-                                            </div>
-
-                                            {/* 顯示回覆 */}
-                                            {comment.replies && comment.replies.length > 0 && (
-                                                <div className="mt-1 ml-4 space-y-1">
-                                                    {comment.replies.map((reply) => (
-                                                        <div key={reply.id} className="flex items-start space-x-1">
-                                                            <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-xxs">
-                                                                {reply.username ? reply.username.charAt(0) : idolName.charAt(0)}
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 py-1">
-                                                                    <div className="flex items-center">
-                                                                        <p className="text-xxs font-medium text-blue-600 dark:text-blue-400">
-                                                                            {reply.username || idolName}
-                                                                        </p>
-                                                                        {reply.mode && (
-                                                                            <span className="ml-1 text-xxs bg-blue-100 dark:bg-blue-800/30 text-blue-500 dark:text-blue-300 px-1 rounded">
-                                                                                {reply.mode}
-                                                                            </span>
-                                                                        )}
-                                                                        <span className="ml-1 text-xxs text-gray-400">{reply.time}</span>
-                                                                    </div>
-                                                                    <p className="text-xxs">{reply.content}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* 回覆按鈕與輸入框 */}
-                                            {replyingTo === comment.id ? (
-                                                <div className="mt-1 ml-4 flex">
-                                                    <input
-                                                        type="text"
-                                                        value={replyInput}
-                                                        onChange={(e) => setReplyInput(e.target.value)}
-                                                        placeholder="輸入回覆..."
-                                                        className="flex-1 text-xxs p-1 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                                                    />
-                                                    <div className="flex ml-1">
-                                                        <button
-                                                            onClick={() => handleReplySubmit(comment.id)}
-                                                            className="text-xxs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                            disabled={!replyInput.trim()}
-                                                        >
-                                                            發送
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setReplyingTo(null);
-                                                                setReplyInput('');
-                                                            }}
-                                                            className="text-xxs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded ml-1 hover:bg-gray-300 dark:hover:bg-gray-500"
-                                                        >
-                                                            取消
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    className="text-xxs text-blue-500 mt-0.5 ml-1 hover:underline"
-                                                    onClick={() => setReplyingTo(comment.id)}
-                                                >
-                                                    回覆
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 py-1">還沒有留言</p>
-                        )}
-
-                        {/* 留言輸入框 */}
-                        <form onSubmit={handleCommentSubmit} className="flex mt-1">
-                            <input
-                                type="text"
-                                placeholder="添加留言..."
-                                className="flex-1 bg-transparent outline-none text-xs text-gray-700 dark:text-gray-300"
-                                value={commentInput}
-                                onChange={(e) => setCommentInput(e.target.value)}
-                            />
-                            <button
-                                type="submit"
-                                className="text-blue-500 text-xs font-medium"
-                                disabled={!commentInput.trim()}
-                            >
-                                發佈
-                            </button>
-                        </form>
-                    </div>
-                )}
-
-                {/* 推薦內容區塊 */}
-                <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-xs text-gray-500 dark:text-gray-400 font-medium">推薦內容</h4>
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={() => setShowCustomizeRecommendations(!showCustomizeRecommendations)}
-                                className="text-xs text-blue-500 dark:text-blue-400 flex items-center"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3 mr-1">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                自訂
-                            </button>
-                            <button
-                                onClick={randomizeRecommendations}
-                                className="text-xs text-gray-500 dark:text-gray-400 flex items-center"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3 h-3 mr-1">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-                                </svg>
-                                隨機
-                            </button>
-                            <button
-                                onClick={() => setShowRecommendations(!showRecommendations)}
-                                className="text-xs text-gray-500 dark:text-gray-400"
-                            >
-                                {showRecommendations ? '收起' : '展開'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 自訂推薦區塊介面 */}
-                    {showCustomizeRecommendations && (
-                        <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h5 className="text-xs font-medium mb-2 text-gray-700 dark:text-gray-300">選擇要顯示的內容</h5>
-                            <div className="space-y-1.5">
-                                {recommendationSections.map(section => (
-                                    <div key={section.id} className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id={`rec-${id}-${section.id}`}
-                                            checked={selectedRecommendations.includes(section.id)}
-                                            onChange={() => toggleRecommendationSelection(section.id)}
-                                            className="w-3.5 h-3.5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
-                                        />
-                                        <label htmlFor={`rec-${id}-${section.id}`} className="ml-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-                                            {section.title}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-2 flex justify-end">
-                                <button
-                                    onClick={applyCustomRecommendations}
-                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                                >
-                                    套用
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 顯示推薦區塊內容 */}
-                    {showRecommendations && (
-                        <RecommendationSection recommendationSections={recommendationSections} />
-                    )}
-                </div>
-            </div>
+            <TextContent
+                idolName={idolName}
+                content={content}
+                likes={likes}
+                commentsCount={commentsCount}
+                isLiked={isLiked}
+                showComments={showComments}
+                commentsList={commentsList}
+                commentInput={commentInput}
+                replyInput={replyInput}
+                replyingTo={replyingTo}
+                isLoadingComments={isLoadingComments}
+                commentError={commentError}
+                id={id}
+                showRecommendations={showRecommendations}
+                showCustomizeRecommendations={showCustomizeRecommendations}
+                recommendationSections={recommendationSections}
+                selectedRecommendations={selectedRecommendations}
+                onLike={onLike}
+                setShowComments={setShowComments}
+                setReplyingTo={setReplyingTo}
+                setReplyInput={setReplyInput}
+                handleReplySubmit={handleReplySubmit}
+                setCommentInput={setCommentInput}
+                handleCommentSubmit={handleCommentSubmit}
+                setShowRecommendations={setShowRecommendations}
+                setShowCustomizeRecommendations={setShowCustomizeRecommendations}
+                randomizeRecommendations={randomizeRecommendations}
+                toggleRecommendationSelection={toggleRecommendationSelection}
+                applyCustomRecommendations={applyCustomRecommendations}
+            />
         </div>
     );
 } 

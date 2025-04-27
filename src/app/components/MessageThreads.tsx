@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AiReplySuggestion from './MessageThreadsAI';
 import { processMessageReply } from '../utils/stepFunctionsMessageFlow';
+import AudioPlayerModal from './AudioPlayerModal';
+
+// 定義音訊檔案路徑常數
+const AUDIO_FILE_URL = '/audio/2025-04-26T23_05_21.162118.m4a';
 
 // 定義指標類型
 
@@ -56,6 +60,42 @@ export default function MessageThreads({
     totalPages,
     onPageChange
 }: MessageThreadsProps) {
+
+    // 添加音訊播放器狀態
+    const [showAudioPlayer, setShowAudioPlayer] = useState<{ [key: number]: boolean }>({});
+    const [currentAudioMessageId, setCurrentAudioMessageId] = useState<number | null>(null);
+
+    // 處理音訊播放器開關
+    const toggleAudioPlayer = (messageId: number) => {
+        setCurrentAudioMessageId(messageId);
+        setShowAudioPlayer(prev => ({
+            ...prev,
+            [messageId]: !prev[messageId]
+        }));
+    };
+
+    // 關閉音訊播放器
+    const closeAudioPlayer = () => {
+        if (currentAudioMessageId !== null) {
+            setShowAudioPlayer(prev => ({
+                ...prev,
+                [currentAudioMessageId]: false
+            }));
+            setCurrentAudioMessageId(null);
+        }
+    };
+
+    // 使用音訊檔案回覆留言
+    const handleSendAudioReply = () => {
+        if (currentAudioMessageId !== null) {
+            // 假設我們將音訊作為一個特殊類型的回覆發送
+            const replyContent = `[音訊回覆] 檔案: ${AUDIO_FILE_URL.split('/').pop()}`;
+            handleSendReply(currentAudioMessageId, replyContent, '音訊回覆');
+
+            // 關閉音訊播放器
+            closeAudioPlayer();
+        }
+    };
 
     // 處理 AI 建議回覆的選擇
     const handleSelectAiReply = async (messageId: number, replyContent: string, replyMode: string) => {
@@ -215,20 +255,40 @@ export default function MessageThreads({
                                     {message.status === '待回覆' && (
                                         <>
                                             {!showAISuggestions[message.id] ? (
-                                                <button
-                                                    onClick={() => toggleAISuggestion(message.id)}
-                                                    className="mb-4 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 rounded text-xs flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                                    </svg>
-                                                    顯示 AI 回覆建議
-                                                </button>
+                                                <div className="flex space-x-2 mb-4">
+                                                    <button
+                                                        onClick={() => toggleAISuggestion(message.id)}
+                                                        className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 rounded text-xs flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                                        </svg>
+                                                        顯示 AI 回覆建議
+                                                    </button>
+                                                    <button
+                                                        onClick={() => toggleAudioPlayer(message.id)}
+                                                        className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded text-xs flex items-center hover:bg-green-200 dark:hover:bg-green-800/50 transition-colors"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 017.072 0m-9.9-2.828a9 9 0 0112.728 0" />
+                                                        </svg>
+                                                        AI 聲音回應
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <AiReplySuggestion
                                                     message={message}
                                                     onSelectReply={(content, mode) => handleSelectAiReply(message.id, content, mode)}
                                                     onClose={() => toggleAISuggestion(message.id)}
+                                                />
+                                            )}
+
+                                            {/* 音訊播放器模態視窗 */}
+                                            {showAudioPlayer[message.id] && (
+                                                <AudioPlayerModal
+                                                    audioUrl={AUDIO_FILE_URL}
+                                                    onClose={closeAudioPlayer}
+                                                    onConfirm={handleSendAudioReply}
                                                 />
                                             )}
                                         </>

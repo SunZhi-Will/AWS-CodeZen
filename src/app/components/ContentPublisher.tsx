@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-
+import Image from 'next/image';
 
 
 export default function ContentPublisher() {
@@ -36,16 +35,20 @@ export default function ContentPublisher() {
     const [randomRecommendations, setRandomRecommendations] = useState(false);
 
     // 處理媒體檔案上傳
-    const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
 
-            // 建立預覽
+            // 設置本地預覽
             const reader = new FileReader();
             reader.onloadend = () => {
+                // 暫存 DataURL 用於預覽
                 setMediaPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
+
+            // 注意：這裡不再立即上傳到 S3，而是在發布時才上傳
+            // 檔案會暫存在 localFile 狀態中，直到發布時才上傳到 S3
         }
     };
 
@@ -78,15 +81,72 @@ export default function ContentPublisher() {
         setError(null);
 
         try {
-            // 處理媒體文件 (這裡只是設置假的 URL，真實情況下應上傳到伺服器或 CDN)
+            // 處理內容和媒體文件
             let imageUrl = null;
+            let videoUrl = null;
+            let audioUrl = null;
             let embeddedUrl = null;
 
-            // 在實際應用中，這裡應該上傳媒體文件到伺服器或 CDN
-            if (contentType === 'image' && mediaPreview) {
-                imageUrl = mediaPreview;
-            } else if (contentType === 'video' && mediaPreview) {
+            // 檢查 mediaPreview 是否為 Data URL (本地暫存圖片)
+            if (mediaPreview && mediaPreview.startsWith('data:')) {
+                // 這是暫存的檔案，需要上傳到 S3
+                try {
+                    // 將 Data URL 轉回 Blob 進行上傳
+                    const response = await fetch(mediaPreview);
+                    const blob = await response.blob();
+                    const file = new File([blob],
+                        `upload-${Date.now()}.${contentType === 'image' ? 'png' : 'mp4'}`,
+                        { type: blob.type });
+
+                    // 準備 FormData 進行上傳
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('folder', contentType === 'image' ? 'images' : 'videos');
+
+                    // 發送上傳請求到 S3
+                    const uploadResponse = await fetch('/api/aws/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!uploadResponse.ok) {
+                        const errorData = await uploadResponse.json();
+                        throw new Error(errorData.error || '上傳失敗');
+                    }
+
+                    const data = await uploadResponse.json();
+                    console.log('文件已成功上傳至 S3:', data.url);
+
+                    // 設置媒體 URL
+                    if (contentType === 'image') {
+                        imageUrl = data.url;
+                    } else if (contentType === 'video') {
+                        videoUrl = data.url;
+                    } else if (contentType === 'music') {
+                        audioUrl = data.url;
+                    }
+
+                } catch (uploadError) {
+                    console.error('上傳失敗:', uploadError);
+                    throw new Error(uploadError instanceof Error ? uploadError.message : '檔案上傳失敗');
+                }
+            } else if (mediaPreview && mediaPreview.startsWith('http')) {
+                // 已經是 S3 URL，直接使用
+                if (contentType === 'image') {
+                    imageUrl = mediaPreview;
+                } else if (contentType === 'video') {
+                    videoUrl = mediaPreview;
+                } else if (contentType === 'music') {
+                    audioUrl = mediaPreview;
+                }
+            }
+
+            // 設置嵌入式 URL（視頻或音樂）
+            if (contentType === 'video' && !videoUrl) {
                 embeddedUrl = customMode && customEmbeddedUrl ? customEmbeddedUrl : "https://www.youtube.com/embed/gdZLi9oWNZg";
+            } else if (contentType === 'music' && !audioUrl) {
+                embeddedUrl = customMode && customEmbeddedUrl ? customEmbeddedUrl :
+                    "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/1234567890&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true";
             }
 
             // 準備發布數據
@@ -95,10 +155,13 @@ export default function ContentPublisher() {
                 content: contentToPublish,
                 postType: contentType,
                 imageUrl,
-                embeddedUrl: customMode && customEmbeddedUrl && contentType !== 'video' ? customEmbeddedUrl : embeddedUrl,
+                videoUrl,
+                audioUrl,
+                embeddedUrl,
                 ...(contentType === 'music' && {
+                    musicTitle: musicArtist ? `${musicArtist} 的新歌` : `${idolName} 的新歌`,
                     musicArtist: musicArtist || `${idolName}`,
-                    embeddedUrl: customMode && customEmbeddedUrl ? customEmbeddedUrl : "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/1234567890&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true"
+                    musicDuration: "3:45" // 示例時長
                 }),
                 // 推薦內容設置
                 recommendations: {
@@ -294,9 +357,8 @@ export default function ContentPublisher() {
                                                             <Image
                                                                 src={mediaPreview}
                                                                 alt="上傳預覽"
-                                                                fill
-                                                                style={{ objectFit: 'cover' }}
-                                                                className="rounded-lg transition-all group-hover:brightness-75"
+                                                                id="media-preview-image"
+                                                                className="rounded-lg transition-all group-hover:brightness-75 h-full w-full object-cover"
                                                             />
                                                             <motion.button
                                                                 onClick={() => {

@@ -72,24 +72,41 @@ export async function POST(request: NextRequest) {
         const timestamp = '剛剛'; // 可以根據需求修改為特定格式
         const createdAt = now.getTime();
 
-        // 創建貼文資料
+        // 處理推薦內容 - 只保留必要信息以減少存儲空間
+        const recommendations = postData.recommendations ? {
+            types: postData.recommendations.selectedTypes?.slice(0, 5) || [], // 限制數量
+            random: !!postData.recommendations.random
+        } : null;
+
+        // 確保 URL 不是 DataURL 格式 (這會非常大)
+        const validateUrl = (url: string | null) => {
+            if (!url) return null;
+            // 如果是 DataURL，則返回 null，因為這種 URL 太大
+            if (url.startsWith('data:')) return null;
+            // 只返回實際 URL，非 URL 則返回 null
+            return url.startsWith('http') ? url : null;
+        };
+
+        // 創建貼文資料 - 優化大小
         const post = {
             id: generateUniqueId(),
-            idolName: postData.idolName,
-            idolAvatar: postData.idolAvatar || null,
-            avatarText: postData.avatarText || postData.idolName.charAt(0),
-            content: postData.content,
+            idolName: postData.idolName.slice(0, 100), // 限制長度
+            avatarText: postData.idolName.charAt(0),
+            content: postData.content.slice(0, 2000), // 限制內容長度
             postType: postData.postType,
-            imageUrl: postData.imageUrl || null,
-            videoUrl: postData.videoUrl || null,
-            embeddedUrl: postData.embeddedUrl || null,
-            musicTitle: postData.musicTitle || null,
-            musicArtist: postData.musicArtist || null,
-            musicDuration: postData.musicDuration || null,
+            imageUrl: validateUrl(postData.imageUrl),
+            videoUrl: validateUrl(postData.videoUrl),
+            embeddedUrl: postData.embeddedUrl ? postData.embeddedUrl.slice(0, 500) : null, // 限制 URL 長度
+            musicTitle: postData.musicTitle ? postData.musicTitle.slice(0, 100) : null,
+            musicArtist: postData.musicArtist ? postData.musicArtist.slice(0, 100) : null,
+            musicDuration: postData.musicDuration,
             likes: 0,
             comments: 0,
             timestamp,
-            createdAt
+            createdAt,
+            // 將推薦內容轉為簡化格式保存
+            recTypes: recommendations?.types || null,
+            recRandom: recommendations?.random || false
         };
 
         // 儲存到 DynamoDB
